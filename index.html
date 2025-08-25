@@ -1,39 +1,39 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>아스코르브산 추정기</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin: 2rem; }
-    canvas { border: 1px solid #ccc; margin-top: 1rem; }
-    #qr { margin-top: 2rem; }
-  </style>
-</head>
-<body>
-  <h1>🍊 음식 속 아스코르브산(비타민 C) 추정기</h1>
-  <input type="file" accept="image/*" id="fileInput">
-  <br>
-  <canvas id="canvas"></canvas>
-  <p>캔버스를 클릭해서 색상 픽셀을 선택하세요.</p>
+<머리>
+ <meta charset=>UTF-8">
+ <title>아스코르브산 추정기</title>
+ <스타일>
+ 본문 {폰트 패밀리: 산세리프; 텍스트 align: 중심; 여백: 2rem; }
+ 캔버스 {경계: 1 px 솔리드 #cccc; 여백 상단: 1rem; }
+ #QR {마진탑: 2rem; }
+ </스타일>
+</머리>
+<바디>
+ <h1>🍊 음식 속 아스코르브산(비타민 C) 추정기</h1>
+ <입력 유형="file" accept="image/*" id="file"입력">
+ <br>
+ <canvas ID="canvas"></canvas>
+ <p>캔버스를 클릭해서 색상 픽셀을 선택하세요.</p>
 
-  <h3>보정 데이터 추가</h3>
-  <input type="number" id="measured" placeholder="실제 농도 (mg/100g)"> 
-  <button id="addPoint">보정점 추가</button>
-  <ul id="calibList"></ul>
+ <h3>보정 데이터 추가</h3>
+ <입력 유형="number" ID="measured" 자리 표시자="실제 농도 (mg/100g)"> 
+ <버튼 id="addPoint">보정점 추가</버튼>
+ <ul id= "calibList"></ul>
 
-  <button id="fitCurve">보정곡선 적합</button>
-  <p id="fitResult"></p>
+ <버튼 id="fitCurve">보정곡선 적합</버튼>
+ <p id="fitResult"></p>
 
-  <button id="estimate">현재 사진으로 농도 추정</button>
-  <p id="estimateResult"></p>
+ <버튼 ID="estimate">현재 사진으로 농도 추정</버튼>
+ <p id= "추정 결과"></p>
 
-  <h2>🔗 QR 코드 만들기</h2>
-  <p>이 페이지 링크를 QR 코드로 만들어 공유할 수 있습니다.</p>
-  <button id="makeQR">QR 코드 생성</button>
-  <div id="qr"></div>
+ <h2>🔗 QR 코드 만들기</h2>
+ <p>이 페이지 링크를 QR 코드로 만들어 공유할 수 있습니다.</p>
+ <버튼 id="make"QR">QR 코드 생성</버튼>
+ <div id="qr"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js "></script>
+ <스크립트>
     const fileInput = document.getElementById('fileInput');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
