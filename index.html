@@ -1,109 +1,116 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="ko">
-<머리>
- <meta charset=>UTF-8">
- <title>아스코르브산 추정기</title>
- <스타일>
- 본문 {폰트 패밀리: 산세리프; 텍스트 align: 중심; 여백: 2rem; }
- 캔버스 {경계: 1 px 솔리드 #cccc; 여백 상단: 1rem; }
- #QR {마진탑: 2rem; }
- </스타일>
-</머리>
-<바디>
- <h1>🍊 음식 속 아스코르브산(비타민 C) 추정기</h1>
- <입력 유형="file" accept="image/*" id="file"입력">
- <br>
- <canvas ID="canvas"></canvas>
- <p>캔버스를 클릭해서 색상 픽셀을 선택하세요.</p>
+<head>
+  <meta charset="UTF-8">
+  <title>🍊 음식 속 아스코르브산(비타민 C) 추정기</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 2rem;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 1rem;
+      max-width: 100%;
+    }
+    #qr {
+      margin-top: 2rem;
+    }
+    button {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍊 음식 속 아스코르브산(비타민 C) 추정기</h1>
 
- <h3>보정 데이터 추가</h3>
- <입력 유형="number" ID="measured" 자리 표시자="실제 농도 (mg/100g)"> 
- <버튼 id="addPoint">보정점 추가</버튼>
- <ul id= "calibList"></ul>
+  <input type="file" accept="image/*" id="fileInput"><br><br>
+  <canvas id="canvas"></canvas>
+  <p>캔버스를 클릭해서 색상 픽셀을 선택하세요.</p>
 
- <버튼 id="fitCurve">보정곡선 적합</버튼>
- <p id="fitResult"></p>
+  <h3>보정 데이터 추가</h3>
+  <input type="number" id="measured" placeholder="실제 농도 (mg/100g)">
+  <button id="addPoint">보정점 추가</button>
+  <button id="fitCurve">보정곡선 적용</button>
+  <button id="estimate">현재 사진으로 농도 추정</button>
 
- <버튼 ID="estimate">현재 사진으로 농도 추정</버튼>
- <p id= "추정 결과"></p>
+  <div id="result"></div>
 
- <h2>🔗 QR 코드 만들기</h2>
- <p>이 페이지 링크를 QR 코드로 만들어 공유할 수 있습니다.</p>
- <버튼 id="make"QR">QR 코드 생성</버튼>
- <div id="qr"></div>
+  <h3>📌 QR 코드 만들기</h3>
+  <div id="qr"></div>
 
- <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js "></script>
- <스크립트>
-    const fileInput = document.getElementById('fileInput');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
+  <!-- QR 코드 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const measuredInput = document.getElementById("measured");
+    const resultDiv = document.getElementById("result");
     let img = new Image();
-    let calibPoints = [];
-    let slope = null, intercept = null;
+    let points = [];
 
-    fileInput.addEventListener('change', e => {
+    // 파일 업로드 → 캔버스 표시
+    fileInput.addEventListener("change", e => {
       const file = e.target.files[0];
+      if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
         img.onload = () => {
           canvas.width = img.width;
           canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-        };
+          ctx.drawImage(img, 0, 0);        };
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     });
 
-    canvas.addEventListener('click', e => {
+    // 클릭 픽셀 색상 추출
+    canvas.addEventListener("click", e => {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const pixel = ctx.getImageData(x, y, 1, 1).data;
-      const avg = (pixel[0] + pixel[1] + pixel[2]) / 3;
-      document.getElementById('estimateResult').innerText = `선택한 픽셀 밝기: ${avg.toFixed(2)}`;
-      window.lastValue = avg;
+      alert(`선택된 픽셀 색상: RGB(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`);
     });
 
-    document.getElementById('addPoint').addEventListener('click', () => {
-      if (window.lastValue && document.getElementById('measured').value) {
-        const real = parseFloat(document.getElementById('measured').value);
-        calibPoints.push([window.lastValue, real]);
-        const li = document.createElement('li');
-        li.innerText = `밝기 ${window.lastValue.toFixed(2)} → 실제 ${real}`;
-        document.getElementById('calibList').appendChild(li);
-      }
-    });
-
-    document.getElementById('fitCurve').addEventListener('click', () => {
-      if (calibPoints.length < 2) {
-        alert('보정점이 2개 이상 필요합니다!');
+    // 보정점 추가
+    document.getElementById("addPoint").addEventListener("click", () => {
+      const value = parseFloat(measuredInput.value);
+      if (isNaN(value)) {
+        alert("실제 농도를 입력하세요!");
         return;
       }
-      let sumX=0,sumY=0,sumXY=0,sumXX=0;
-      calibPoints.forEach(([x,y])=>{sumX+=x; sumY+=y; sumXY+=x*y; sumXX+=x*x;});
-      const n = calibPoints.length;
-      slope = (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
-      intercept = (sumY - slope*sumX)/n;
-      document.getElementById('fitResult').innerText = `보정식: 농도 = ${slope.toFixed(3)}*밝기 + ${intercept.toFixed(3)}`;
+      points.push(value);
+      alert("보정점이 추가되었습니다: " + value);
     });
 
-    document.getElementById('estimate').addEventListener('click', () => {
-      if (slope === null) { alert('먼저 보정곡선을 적합하세요!'); return; }
-      if (!window.lastValue) { alert('이미지에서 픽셀을 선택하세요!'); return; }
-      const est = slope*window.lastValue + intercept;
-      document.getElementById('estimateResult').innerText = `추정 농도: ${est.toFixed(2)} mg/100g`;
-    });
+    // 단순 추정 (예시)
+    document.getElementById("estimate").addEventListener("click", () => {
+      if (points.length === 0) {
+        resultDiv.innerText = "보정 데이터가 없어 대략 50 mg/100g 으로 추정합니다.";
+      } else {
+        const avg = points.reduce((a,b)=>a+b,0)/points.length;
+        resultDiv.innerText = `보정 데이터를 기반으로 추정 농도: 약 ${avg.toFixed(1)} mg/100g`;
+      }
 
-    document.getElementById('makeQR').addEventListener('click', () => {
-      document.getElementById('qr').innerHTML = '';
-      const qr = new QRious({
-        element: document.createElement('canvas'),
-        value: window.location.href,
-        size: 200
+      // QR 코드 생성
+      document.getElementById("qr").innerHTML = "";
+      new QRCode(document.getElementById("qr"), {
+ text: resultDiv.innerText,
+        width: 128,
+        height: 128
       });
-      document.getElementById('qr').appendChild(qr.element);
     });
   </script>
 </body>
