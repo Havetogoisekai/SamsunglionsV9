@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>아스코르브산 추정기</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 2rem; }
+    canvas { border: 1px solid #ccc; margin-top: 1rem; }
+    #qr { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>🍊 음식 속 아스코르브산(비타민 C) 추정기</h1>
+  <input type="file" accept="image/*" id="fileInput">
+  <br>
+  <canvas id="canvas"></canvas>
+  <p>캔버스를 클릭해서 색상 픽셀을 선택하세요.</p>
+
+  <h3>보정 데이터 추가</h3>
+  <input type="number" id="measured" placeholder="실제 농도 (mg/100g)"> 
+  <button id="addPoint">보정점 추가</button>
+  <ul id="calibList"></ul>
+
+  <button id="fitCurve">보정곡선 적합</button>
+  <p id="fitResult"></p>
+
+  <button id="estimate">현재 사진으로 농도 추정</button>
+  <p id="estimateResult"></p>
+
+  <h2>🔗 QR 코드 만들기</h2>
+  <p>이 페이지 링크를 QR 코드로 만들어 공유할 수 있습니다.</p>
+  <button id="makeQR">QR 코드 생성</button>
+  <div id="qr"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let img = new Image();
+    let calibPoints = [];
+    let slope = null, intercept = null;
+
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = ev => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const pixel = ctx.getImageData(x, y, 1, 1).data;
+      const avg = (pixel[0] + pixel[1] + pixel[2]) / 3;
+      document.getElementById('estimateResult').innerText = `선택한 픽셀 밝기: ${avg.toFixed(2)}`;
+      window.lastValue = avg;
+    });
+
+    document.getElementById('addPoint').addEventListener('click', () => {
+      if (window.lastValue && document.getElementById('measured').value) {
+        const real = parseFloat(document.getElementById('measured').value);
+        calibPoints.push([window.lastValue, real]);
+        const li = document.createElement('li');
+        li.innerText = `밝기 ${window.lastValue.toFixed(2)} → 실제 ${real}`;
+        document.getElementById('calibList').appendChild(li);
+      }
+    });
+
+    document.getElementById('fitCurve').addEventListener('click', () => {
+      if (calibPoints.length < 2) {
+        alert('보정점이 2개 이상 필요합니다!');
+        return;
+      }
+      let sumX=0,sumY=0,sumXY=0,sumXX=0;
+      calibPoints.forEach(([x,y])=>{sumX+=x; sumY+=y; sumXY+=x*y; sumXX+=x*x;});
+      const n = calibPoints.length;
+      slope = (n*sumXY - sumX*sumY)/(n*sumXX - sumX*sumX);
+      intercept = (sumY - slope*sumX)/n;
+      document.getElementById('fitResult').innerText = `보정식: 농도 = ${slope.toFixed(3)}*밝기 + ${intercept.toFixed(3)}`;
+    });
+
+    document.getElementById('estimate').addEventListener('click', () => {
+      if (slope === null) { alert('먼저 보정곡선을 적합하세요!'); return; }
+      if (!window.lastValue) { alert('이미지에서 픽셀을 선택하세요!'); return; }
+      const est = slope*window.lastValue + intercept;
+      document.getElementById('estimateResult').innerText = `추정 농도: ${est.toFixed(2)} mg/100g`;
+    });
+
+    document.getElementById('makeQR').addEventListener('click', () => {
+      document.getElementById('qr').innerHTML = '';
+      const qr = new QRious({
+        element: document.createElement('canvas'),
+        value: window.location.href,
+        size: 200
+      });
+      document.getElementById('qr').appendChild(qr.element);
+    });
+  </script>
+</body>
+</html>
